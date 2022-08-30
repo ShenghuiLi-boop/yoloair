@@ -46,17 +46,39 @@ class Detect(nn.Module):
         self.grid = [torch.zeros(1)] * self.nl  # init grid
         self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
         self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
+        """
+        ModuleList(
+          (0): Conv2d(128, 18, kernel_size=(1, 1), stride=(1, 1))
+          (1): Conv2d(256, 18, kernel_size=(1, 1), stride=(1, 1))
+          (2): Conv2d(512, 18, kernel_size=(1, 1), stride=(1, 1))
+        )
+        """
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
 
     def forward(self, x):
+        """
+        Args:
+            x:
+        Returns:
+            train: 一个tensor list 存放三个元素   [bs, anchor_num, grid_w, grid_h, xywh+c+20classes]
+                       分别是 [1, 3, 80, 80, 25] [1, 3, 40, 40, 25] [1, 3, 20, 20, 25]
+            inference: 0 [1, 19200+4800+1200, 25] = [bs, anchor_num*grid_w*grid_h, xywh+c+20classes]
+                       1 一个tensor list 存放三个元素 [bs, anchor_num, grid_w, grid_h, xywh+c+20classes]
+                         [1, 3, 80, 80, 25] [1, 3, 40, 40, 25] [1, 3, 20, 20, 25]
+        """
         z = []  # inference output
+        # 对三层特征图分别进行处理
         for i in range(self.nl):
-            x[i] = self.m[i](x[i])  # conv
-            bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
+            x[i] = self.m[i](x[i])  # 进行通道调整
+            bs, _, ny, nx = x[i].shape
+            # [bs, 75, 80, 80] to [1, 3, 25, 80, 80] to [1, 3, 80, 80, 25]
             x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
             if not self.training:  # inference
+                # 构造网格
+                # 因为推理返回的不是归一化后的网格偏移量 需要再加上网格的位置 得到最终的推理坐标 再送入nms
+                # 所以这里构建网格就是为了纪律每个grid的网格坐标 方面后面使用
                 if self.onnx_dynamic or self.grid[i].shape[2:4] != x[i].shape[2:4]:
                     self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
 
@@ -544,7 +566,10 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', type=str, default='../configs/myimprove/yolov5s.yaml', help='model.yaml')# yolov5s_bifpn
+    # ======================= #
+    # yolov5s_bifpn、head-Improved/yolov5s_asff.yaml
+    # ======================= #
+    parser.add_argument('--cfg', type=str, default='../configs/myimprove/head-Improved/yolov5s_asff.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--profile', action='store_true', help='profile model speed')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
@@ -555,6 +580,7 @@ if __name__ == '__main__':
 
     # Create model
     model = Model(opt.cfg).to(device)
+    print(model)
     model.train()
 
     # Profile

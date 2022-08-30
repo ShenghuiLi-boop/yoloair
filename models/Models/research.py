@@ -1142,10 +1142,14 @@ class ASFFV5(nn.Module):
         """
         super(ASFFV5, self).__init__()
         self.level = level
+        # multiplier 默认传入为 0.5
+        # multiplier=0.5 -> [512,256,128]
+        # multiplier=1   -> [1024,512,256]
         self.dim = [int(1024*multiplier), int(512*multiplier),
                     int(256*multiplier)]
-        # print(self.dim)
-        
+        # level = 0 -> self.inter_dim = self.dim[0] = 512
+        # level = 1 -> self.inter_dim = self.dim[1] = 256
+        # level = 2 -> self.inter_dim = self.dim[2] = 128
         self.inter_dim = self.dim[self.level]
         if level == 0:
             self.stride_level_1 = Conv(int(512*multiplier), self.inter_dim, 3, 2)
@@ -1169,7 +1173,7 @@ class ASFFV5(nn.Module):
                 256*multiplier), 3, 1)
 
         # when adding rfb, we use half number of channels to save memory
-        compress_c = 8 if rfb else 16
+        compress_c = 8 if rfb else 16 # rfb 默认为 False
         self.weight_level_0 = Conv(
             self.inter_dim, compress_c, 1, 1)
         self.weight_level_1 = Conv(
@@ -1187,9 +1191,9 @@ class ASFFV5(nn.Module):
         512, 256, 128
         from small -> large
         """
-        x_level_0=x[2] #l
-        x_level_1=x[1] #m
-        x_level_2=x[0] #s
+        x_level_0=x[2] # l
+        x_level_1=x[1] # m
+        x_level_2=x[0] # s
         # print('x_level_0: ', x_level_0.shape)
         # print('x_level_1: ', x_level_1.shape)
         # print('x_level_2: ', x_level_2.shape)
@@ -1207,6 +1211,8 @@ class ASFFV5(nn.Module):
             level_2_resized = self.stride_level_2(x_level_2)
         elif self.level == 2:
             level_0_compressed = self.compress_level_0(x_level_0)
+            # 功能：利用插值方法，对输入的张量数组进行上\下采样操作，
+            # 换句话说就是科学合理地改变数组的尺寸大小，尽量保持数据完整。
             level_0_resized = F.interpolate(
                 level_0_compressed, scale_factor=4, mode='nearest')
             x_level_1_compressed = self.compress_level_1(x_level_1)

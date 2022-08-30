@@ -91,24 +91,78 @@ class ASFF_Detect(nn.Module):   #add ASFFV5 layer and Rfb
         self.nl = len(anchors)  # number of detection layers
         self.na = len(anchors[0]) // 2  # number of anchors
         self.grid = [torch.zeros(1)] * self.nl  # init grid
+        """ASFFV5结构
+        ASFFV5(
+          (stride_level_1): Conv(
+            (conv): Conv2d(256, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (act): SiLU()
+          )
+          (stride_level_2): Conv(
+            (conv): Conv2d(128, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (act): SiLU()
+          )
+          (expand): Conv(
+            (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (act): SiLU()
+          )
+          (weight_level_0): Conv(
+            (conv): Conv2d(512, 16, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn): BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (act): SiLU()
+          )
+          (weight_level_1): Conv(
+            (conv): Conv2d(512, 16, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn): BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (act): SiLU()
+          )
+          (weight_level_2): Conv(
+            (conv): Conv2d(512, 16, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn): BatchNorm2d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (act): SiLU()
+          )
+          (weight_levels): Conv(
+            (conv): Conv2d(48, 3, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn): BatchNorm2d(3, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (act): SiLU()
+          )
+        )
+        """
         self.l0_fusion = ASFFV5(level=0, multiplier=multiplier,rfb=rfb)
         self.l1_fusion = ASFFV5(level=1, multiplier=multiplier,rfb=rfb)
         self.l2_fusion = ASFFV5(level=2, multiplier=multiplier,rfb=rfb)
         self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
         self.register_buffer('anchors', torch.tensor(anchors).float().view(self.nl, -1, 2))  # shape(nl,na,2)
+        """ 和原始Detect头一样
+        ModuleList(
+          (0): Conv2d(128, 255, kernel_size=(1, 1), stride=(1, 1))
+          (1): Conv2d(256, 255, kernel_size=(1, 1), stride=(1, 1))
+          (2): Conv2d(512, 255, kernel_size=(1, 1), stride=(1, 1))
+        )
+        """
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
 
     def forward(self, x):
+        """
+
+        Args:
+            x: x[0] [1, 128, 32, 32] x[1] [1, 256, 16, 16] x[2] [1, 512, 8, 8]
+
+        Returns:
+
+        """
         z = []  # inference output
         result=[]
-       
+
         result.append(self.l2_fusion(x))
         result.append(self.l1_fusion(x))
         result.append(self.l0_fusion(x))
         x=result      
         for i in range(self.nl):
-            x[i] = self.m[i](x[i])  # conv
+            x[i] = self.m[i](x[i])  # 进行通道调整
             bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
