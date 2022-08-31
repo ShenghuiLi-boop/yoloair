@@ -497,7 +497,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default=ROOT / 'yolov5s.pt', help='initial weights path')
-    parser.add_argument('--cfg', type=str, default='configs/myimprove/head-Improved/yolov5s_asff.yaml', help='model.yaml path')
+    parser.add_argument('--cfg', type=str, default='configs/myimprove/attention/yolov5s_SEAttention.yaml', help='model.yaml path')
     parser.add_argument('--data', type=str, default=ROOT / 'data/hrsid.yaml', help='dataset.yaml path')
     parser.add_argument('--hyp', type=str, default=ROOT / 'data/hyps/hyp.scratch-low.yaml', help='hyperparameters path')
     parser.add_argument('--epochs', type=int, default=400)

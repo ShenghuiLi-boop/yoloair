@@ -569,7 +569,7 @@ if __name__ == '__main__':
     # ======================= #
     # yolov5s_bifpn、head-Improved/yolov5s_asff.yaml
     # ======================= #
-    parser.add_argument('--cfg', type=str, default='../configs/myimprove/head-Improved/yolov5s_asff.yaml', help='model.yaml')
+    parser.add_argument('--cfg', type=str, default='../configs/myimprove/attention/yolov5s_SEAttention.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--profile', action='store_true', help='profile model speed')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
