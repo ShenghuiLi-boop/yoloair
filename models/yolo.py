@@ -441,7 +441,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
                 args.insert(2, n)  # 在第二个位置插入bottleneck个数n
                 n = 1
         # add module research
-        elif m in [CARAFE, SPPCSPC, RepConv, BoT3, CA, CBAM, NAMAttention, GAMAttention, ACmix, Involution, Stem, ResCSPC, ResCSPB, \
+        elif m in [CARAFE, SPPCSPC, SPPFCSPC, RepConv, BoT3, CA, CBAM, NAMAttention, GAMAttention, Involution, Stem, ResCSPC, ResCSPB, \
                    ResXCSPB, ResXCSPC, BottleneckCSPB, BottleneckCSPC,
                    ASPP, BasicRFB, SPPCSPC_group, HorBlock, CNeB,C3GC ,C3C2, nn.ConvTranspose2d]:
             c1, c2 = ch[f], args[0]
@@ -458,7 +458,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
                     args[6] = make_divisible(args[6] * gw, 8)
         elif m in [CBH, ES_Bottleneck, DWConvblock, RepVGGBlock, LC_Block, Dense, conv_bn_relu_maxpool, \
                    Shuffle_Block, stem, mobilev3_bneck, conv_bn_hswish, MobileNetV3_InvertedResidual, DepthSepConv, \
-                   ShuffleNetV2_Model, Conv_maxpool, CoT3, ConvNextBlock]:
+                   ShuffleNetV2_Model, Conv_maxpool, CoT3, ConvNextBlock, RepBlock]:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)
@@ -468,18 +468,18 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
                 args.insert(2, n)  # number of repeats
                 n = 1
         # yolov4, r
-        elif m in [SPPCSP, BottleneckCSP2, DownC, BottleneckCSPF, RepVGGBlockv6]:
+        elif m in [SPPCSP, BottleneckCSP2, DownC, BottleneckCSPF, RepVGGBlockv6, VoVGSCSP, GSConv]:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)
 
             args = [c1, c2, *args[1:]]
-            if m in [SPPCSP, BottleneckCSP2, DownC, BottleneckCSPF]:
+            if m in [SPPCSP, BottleneckCSP2, DownC, BottleneckCSPF, VoVGSCSP]:
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m in [ReOrg, DWT]:
             c2 = ch[f] * 4
-        elif m in [S2Attention, CrissCrossAttention, SOCA, ShuffleAttention, SEAttention, SimAM, SKAttention]:
+        elif m in [S2Attention, SimSPPF, ACmix, CrissCrossAttention, SOCA, ShuffleAttention, SEAttention, SimAM, SKAttention]:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)
@@ -580,7 +580,6 @@ if __name__ == '__main__':
 
     # Create model
     model = Model(opt.cfg).to(device)
-    print(model)
     model.train()
 
     # Profile
