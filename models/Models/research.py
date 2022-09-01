@@ -1204,40 +1204,41 @@ class ASFFV5(nn.Module):
                 x_level_2, 3, stride=2, padding=1)
             level_2_resized = self.stride_level_2(level_2_downsampled_inter)
         elif self.level == 1:
-            level_0_compressed = self.compress_level_0(x_level_0)
-            level_0_resized = F.interpolate(
+            level_0_compressed = self.compress_level_0(x_level_0) # [1, 512, 8, 8] -> [1, 256, 8, 8]
+            level_0_resized = F.interpolate( # [1, 256, 8, 8] -> [1, 256, 16, 16]
                 level_0_compressed, scale_factor=2, mode='nearest')
-            level_1_resized = x_level_1
-            level_2_resized = self.stride_level_2(x_level_2)
+            level_1_resized = x_level_1 # [1, 256, 16, 16]
+            level_2_resized = self.stride_level_2(x_level_2) # [1, 128, 32, 32] -> [1, 256, 16, 16]
         elif self.level == 2:
+            # [1, 512, 8, 8] -> [1, 128, 8, 8]
             level_0_compressed = self.compress_level_0(x_level_0)
+            # F.interpolate -> 数组采样操作
             # 功能：利用插值方法，对输入的张量数组进行上\下采样操作，
             # 换句话说就是科学合理地改变数组的尺寸大小，尽量保持数据完整。
+            # [1, 128, 8, 8] -> [1, 128, 32, 32]
             level_0_resized = F.interpolate(
                 level_0_compressed, scale_factor=4, mode='nearest')
-            x_level_1_compressed = self.compress_level_1(x_level_1)
-            level_1_resized = F.interpolate(
+            x_level_1_compressed = self.compress_level_1(x_level_1)# [1, 256, 16, 16] -> [1, 128, 16, 16]
+            level_1_resized = F.interpolate(# [1, 128, 16, 16] -> [1, 128, 32, 32]
                 x_level_1_compressed, scale_factor=2, mode='nearest')
-            level_2_resized = x_level_2
+            level_2_resized = x_level_2 # [1, 128, 32, 32] 没动
 
         # print('level: {}, l1_resized: {}, l2_resized: {}'.format(self.level,
         #      level_1_resized.shape, level_2_resized.shape))
-        level_0_weight_v = self.weight_level_0(level_0_resized)
-        level_1_weight_v = self.weight_level_1(level_1_resized)
-        level_2_weight_v = self.weight_level_2(level_2_resized)
-        # print('level_0_weight_v: ', level_0_weight_v.shape)
-        # print('level_1_weight_v: ', level_1_weight_v.shape)
-        # print('level_2_weight_v: ', level_2_weight_v.shape)
+        level_0_weight_v = self.weight_level_0(level_0_resized) # [1, 128, 32, 32] -> [1, 16, 32, 32]
+        level_1_weight_v = self.weight_level_1(level_1_resized) # [1, 128, 32, 32] -> [1, 16, 32, 32]
+        level_2_weight_v = self.weight_level_2(level_2_resized) # [1, 128, 32, 32] -> [1, 16, 32, 32]
 
+        # [1, 48, 32, 32]
         levels_weight_v = torch.cat(
             (level_0_weight_v, level_1_weight_v, level_2_weight_v), 1)
-        levels_weight = self.weight_levels(levels_weight_v)
-        levels_weight = F.softmax(levels_weight, dim=1)
-
+        levels_weight = self.weight_levels(levels_weight_v) # [1, 48, 32, 32] -> [1, 3, 32, 32]
+        levels_weight = F.softmax(levels_weight, dim=1) # [1, 3, 32, 32] -> [1, 3, 32, 32]
+        # [1, 128, 32, 32]
         fused_out_reduced = level_0_resized * levels_weight[:, 0:1, :, :] +\
             level_1_resized * levels_weight[:, 1:2, :, :] +\
             level_2_resized * levels_weight[:, 2:, :, :]
-
+        # [1, 128, 32, 32] -> [1, 128, 32, 32]
         out = self.expand(fused_out_reduced)
 
         if self.vis:
