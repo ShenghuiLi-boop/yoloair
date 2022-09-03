@@ -11,6 +11,7 @@ anchors:
 
 # YOLOv5 v6.0 backbone
 backbone:
+   ”
   # [from, number, module, args]
   [[-1, 1, Conv, [64, 6, 2, 2]],  # 0-P1/2
    [-1, 1, Conv, [128, 3, 2]],  # 1-P2/4
