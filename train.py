@@ -499,10 +499,11 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     return results
 
 
+
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default=ROOT / 'yolov5s.pt', help='initial weights path')
-    parser.add_argument('--cfg', type=str, default='configs/myimprove/attention/yolov5s_acmix_3.yaml', help='model.yaml path')
+    parser.add_argument('--cfg', type=str, default='configs/myimprove/attention/yolov5_ShuffleAttention_3_1.yaml', help='model.yaml path')
     parser.add_argument('--data', type=str, default=ROOT / 'data/hrsid.yaml', help='dataset.yaml path')
     parser.add_argument('--hyp', type=str, default=ROOT / 'data/hyps/hyp.scratch-low.yaml', help='hyperparameters path')
     parser.add_argument('--epochs', type=int, default=400)
@@ -521,8 +522,7 @@ def parse_opt(known=False):
     parser.add_argument('--bucket', type=str, default='', help='gsutil bucket')
     parser.add_argument('--cache', type=str, nargs='?', const='ram', help='--cache images in "ram" (default) or "disk"')
     parser.add_argument('--image-weights', action='store_true', help='use weighted image selection for training')
-
-    parser.add_argument('--device', default='0,1', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--device', default='0', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--multi-scale', action='store_true', help='vary img-size +/- 50%%')
     parser.add_argument('--single-cls', action='store_true', help='train multi-class data as single-class')
     parser.add_argument('--optimizer', type=str, choices=['SGD', 'Adam', 'AdamW'], default='SGD', help='optimizer')
@@ -692,5 +692,9 @@ def run(**kwargs):
 
 
 if __name__ == "__main__":
+    import torch, gc
+
+    gc.collect()
+    torch.cuda.empty_cache()
     opt = parse_opt()
     main(opt)
