@@ -1,8 +1,8 @@
 
 
-train: ../datasets/hrsid/images/train/
-val: ../datasets/hrsid/images/val/
-test:  ../datasets/hrsid/images/test/
+train: ../datasets/ssdd/images/train/
+val: ../datasets/ssdd/images/val/
+test:  ../datasets/ssdd/images/test/
 
 # Classes
 nc: 1 # number of classes
