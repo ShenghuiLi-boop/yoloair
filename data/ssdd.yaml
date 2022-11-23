@@ -1,0 +1,9 @@
+
+
+train: ../datasets/hrsid/images/train/
+val: ../datasets/hrsid/images/val/
+test:  ../datasets/hrsid/images/test/
+
+# Classes
+nc: 1 # number of classes
+names: ['ship']  # class names
